@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>반응속도 실험 · Reaction Time Study</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #ffffff;
+  --fg: #0a0a0a;
+  --muted: #8a8a8a;
+  --line: #d4d4d4;
+  --line-light: #ededed;
+  --red: #EF4444;
+  --blue: #3B82F6;
+  --green: #22C55E;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: background-color 0.05s ease-out;
+}
+
+.app.stimulus-color-red   { background: var(--red); }
+.app.stimulus-color-blue  { background: var(--blue); }
+.app.stimulus-color-green { background: var(--green); }
+
+/* ─── Decorative corner ticks (lab-instrument aesthetic) ─── */
+.tick {
+  position: fixed;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  z-index: 49;
+  opacity: 0.55;
+  transition: opacity 0.2s;
+}
+.tick.tl { top: 18px; left: 18px;  border-top: 1px solid var(--fg); border-left: 1px solid var(--fg); }
+.tick.tr { top: 18px; right: 18px; border-top: 1px solid var(--fg); border-right: 1px solid var(--fg); }
+.tick.bl { bottom: 18px; left: 18px;  border-bottom: 1px solid var(--fg); border-left: 1px solid var(--fg); }
+.tick.br { bottom: 18px; right: 18px; border-bottom: 1px solid var(--fg); border-right: 1px solid var(--fg); }
+.app.color-stimulus .tick { opacity: 0; }
+
+/* ─── Status bar ─── */
+.statusbar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  padding: 28px 44px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  text-transform: uppercase;
+  z-index: 50;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.statusbar.invisible { opacity: 0; }
+.app.color-stimulus .statusbar { opacity: 0; }
+
+.statusbar .dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--fg);
+  margin-right: 8px;
+  vertical-align: 1px;
+}
+
+/* ─── Screens ─── */
+.screen {
+  flex: 1;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  text-align: center;
+}
+.screen.active { display: flex; }
+
+/* ─── Welcome ─── */
+.welcome { max-width: 460px; width: 100%; }
+.welcome .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 18px;
+}
+.welcome h1 {
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-bottom: 8px;
+  line-height: 1.05;
+}
+.welcome .tagline {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 56px;
+  letter-spacing: 0.01em;
+}
+.field { margin-bottom: 24px; text-align: left; }
+.field label {
+  display: block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.field input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  padding: 10px 0;
+  font-size: 18px;
+  font-family: 'Pretendard', sans-serif;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.field input:focus { border-bottom-color: var(--fg); }
+
+button.primary {
+  margin-top: 32px;
+  background: var(--fg);
+  color: var(--bg);
+  border: none;
+  padding: 17px 32px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: opacity 0.18s, transform 0.18s;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+button.primary:hover:not(:disabled) { opacity: 0.85; }
+button.primary:active:not(:disabled) { transform: scale(0.99); }
+button.primary:disabled { opacity: 0.25; cursor: not-allowed; }
+button.primary .arrow { transition: transform 0.2s; }
+button.primary:hover:not(:disabled) .arrow { transform: translateX(3px); }
+
+button.secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line);
+  padding: 13px 26px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  margin-top: 12px;
+}
+button.secondary:hover { background: #f5f5f5; border-color: var(--fg); }
+
+/* ─── Instructions ─── */
+.instructions { max-width: 580px; }
+.instructions .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.instructions h2 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 36px;
+}
+.instructions .list {
+  text-align: left;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: #2a2a2a;
+  margin-bottom: 32px;
+}
+.instructions .list .row {
+  display: flex;
+  gap: 20px;
+  padding: 16px 0;
+  border-bottom: 1px dashed var(--line-light);
+}
+.instructions .list .row:last-child { border-bottom: none; }
+.instructions .list .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg);
+  padding-top: 4px;
+  min-width: 28px;
+  letter-spacing: 0.05em;
+}
+
+.hint {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.kbd {
+  display: inline-block;
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--fg);
+  letter-spacing: 0.05em;
+  box-shadow: 0 1px 0 var(--line);
+}
+
+/* ─── Phase intro ─── */
+.phase-intro { text-align: center; max-width: 520px; }
+.phase-intro .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.phase-intro h2 {
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  margin-bottom: 20px;
+  line-height: 1.05;
+}
+.phase-intro p {
+  font-size: 16px;
+  color: #444;
+  margin: 0 auto 6px;
+  max-width: 440px;
+  line-height: 1.6;
+}
+.phase-intro .meta-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 18px;
+}
+
+/* ─── Trial ─── */
+.trial-main {
+  font-size: 64px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--fg);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trial-main.waiting {
+  font-size: 30px;
+  color: var(--fg);
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+.trial-main.word {
+  font-size: 110px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.02em;
+}
+.trial-feedback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.rt-number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 92px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--fg);
+  line-height: 1;
+}
+.rt-unit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+.average-display {
+  margin-top: 56px;
+  padding-top: 24px;
+  border-top: 1px solid var(--line-light);
+  display: flex;
+  gap: 56px;
+  justify-content: center;
+  align-items: flex-start;
+  transition: opacity 0.2s;
+  min-width: 420px;
+}
+.average-display.hidden { opacity: 0; pointer-events: none; }
+.avg-item {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  min-width: 80px;
+}
+.avg-item[data-color="red"]   { color: var(--red); }
+.avg-item[data-color="blue"]  { color: var(--blue); }
+.avg-item[data-color="green"] { color: var(--green); }
+.avg-label {
+  font-family: 'Pretendard', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  margin-bottom: 6px;
+}
+.avg-value {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.avg-value.empty { opacity: 0.28; }
+
+/* ─── Too-fast warning ─── */
+.trial-main.too-fast {
+  font-size: 44px;
+  font-weight: 600;
+  color: #dc2626;
+  letter-spacing: -0.01em;
+  animation: tooFastPulse 0.4s ease-out;
+}
+@keyframes tooFastPulse {
+  0%   { opacity: 0; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Results ─── */
+.results { max-width: 720px; width: 100%; }
+.results .eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.results h2 {
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.results .meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-bottom: 44px;
+}
+.results-section {
+  margin-bottom: 28px;
+  border: 1px solid var(--line-light);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.results-section .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 16px 22px;
+  background: #fafafa;
+  border-bottom: 1px solid var(--line-light);
+}
+.results-section .header .title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.results-section .header .tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.results-section .rows { padding: 6px 0; }
+.results-section .data-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 22px;
+  font-size: 15px;
+}
+.results-section .data-row .name { display: flex; align-items: center; gap: 12px; }
+.results-section .swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.results-section .num {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  font-size: 16px;
+}
+.results-section .data-row.overall {
+  border-top: 1px dashed var(--line-light);
+  margin-top: 4px;
+  padding-top: 14px;
+  color: var(--muted);
+}
+
+.send-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 32px;
+  text-align: center;
+}
+.send-status.success { color: #16a34a; }
+.send-status.error { color: #dc2626; }
+
+.results-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+/* ─── Browser warning ─── */
+.browser-warning {
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  padding: 12px 16px;
+  font-size: 13px;
+  border-radius: 6px;
+  margin-top: 20px;
+  text-align: left;
+  line-height: 1.5;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .welcome h1 { font-size: 32px; }
+  .phase-intro h2 { font-size: 36px; }
+  .rt-number { font-size: 64px; }
+  .trial-main.word { font-size: 72px; }
+  .statusbar { padding: 18px 24px 0; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="tick tl"></div>
+  <div class="tick tr"></div>
+  <div class="tick bl"></div>
+  <div class="tick br"></div>
+
+  <div class="statusbar invisible" id="statusbar">
+    <div class="left">
+      <span class="dot"></span><span id="phase-label">—</span>
+    </div>
+    <div class="right">
+      <span id="trial-counter">— / 27</span>
+    </div>
+  </div>
+
+  <!-- ─── Welcome ─── -->
+  <div class="screen active" id="screen-welcome">
+    <div class="welcome">
+      <div class="eyebrow">EXP · 2026</div>
+      <h1>반응속도 실험</h1>
+      <div class="tagline">시각 · 언어 · 청각 자극에 따른 반응속도 비교</div>
+
+      <div class="field">
+        <label>학번 / Student ID</label>
+        <input id="input-id" type="text" autocomplete="off" inputmode="numeric" />
+      </div>
+      <div class="field">
+        <label>이름 / Name</label>
+        <input id="input-name" type="text" autocomplete="off" />
+      </div>
+
+      <button class="primary" id="btn-start" disabled>
+        실험 시작 <span class="arrow">→</span>
+      </button>
+
+      <div class="browser-warning" id="browser-warning" style="display:none;">
+        ⚠ 이 실험은 한국어 음성합성(TTS)을 사용합니다. <strong>Chrome 또는 Edge 브라우저</strong>에서 진행해주세요.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Instructions ─── -->
+  <div class="screen" id="screen-instructions">
+    <div class="instructions">
+      <div class="eyebrow">PROCEDURE</div>
+      <h2>실험 안내</h2>
+      <div class="list">
+        <div class="row">
+          <div class="num">01</div>
+          <div>총 <strong>27회</strong>의 시도를 진행합니다 (3단계 × 9회).</div>
+        </div>
+        <div class="row">
+          <div class="num">02</div>
+          <div>화면이 변하거나 소리가 들리면 즉시 <span class="kbd">Space</span> 키를 누르세요.</div>
+        </div>
+        <div class="row">
+          <div class="num">03</div>
+          <div>각 단계는 <strong>색깔 → 글자 → 소리</strong> 순으로 진행됩니다.</div>
+        </div>
+        <div class="row">
+          <div class="num">04</div>
+          <div>가능한 한 정확하고 빠르게 반응해주세요. 자극이 나오기 전 미리 누르지 마세요.</div>
+        </div>
+      </div>
+      <div class="hint"><span class="kbd">Space</span> 다음으로 이동</div>
+    </div>
+  </div>
+
+  <!-- ─── Phase intro ─── -->
+  <div class="screen" id="screen-phase">
+    <div class="phase-intro">
+      <div class="num" id="phase-num">PHASE 1 / 3</div>
+      <h2 id="phase-title">색깔 단계</h2>
+      <p id="phase-desc"></p>
+      <div class="meta-line">9 trials · randomized</div>
+      <div class="hint" style="margin-top: 40px;"><span class="kbd">Space</span> 시작</div>
+    </div>
+  </div>
+
+  <!-- ─── Trial ─── -->
+  <div class="screen" id="screen-trial">
+    <div class="trial-main waiting" id="trial-content">대기중</div>
+    <div class="average-display hidden" id="average-display">
+      <div class="avg-item" data-color="red">
+        <div class="avg-label">빨강</div>
+        <div class="avg-value empty" id="avg-red">— ms</div>
+      </div>
+      <div class="avg-item" data-color="blue">
+        <div class="avg-label">파랑</div>
+        <div class="avg-value empty" id="avg-blue">— ms</div>
+      </div>
+      <div class="avg-item" data-color="green">
+        <div class="avg-label">초록</div>
+        <div class="avg-value empty" id="avg-green">— ms</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Results ─── -->
+  <div class="screen" id="screen-results">
+    <div class="results">
+      <div class="eyebrow">RESULTS</div>
+      <h2>실험 완료</h2>
+      <div class="meta" id="results-meta">— · —</div>
+
+      <div id="results-content"></div>
+
+      <div class="send-status" id="send-status">데이터 전송 중…</div>
+
+      <div class="results-actions">
+        <button class="secondary" id="btn-download">CSV 백업 다운로드</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   CONFIG  ―  Google Apps Script URL을 아래에 붙여넣으세요
+   ═══════════════════════════════════════════════════════ */
+const CONFIG = {
+  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyQ9CGuIp9Tw-ks2KjAh_70Ik0kpJPeQcFEaDSY3dfZIynDXUeDTIYkCM0TU-xhhuXM/exec',
+  WAIT_MIN: 1200,              // 자극 전 최소 대기시간 (ms)
+  WAIT_MAX: 2800,              // 자극 전 최대 대기시간 (ms)
+  FEEDBACK_MS: 1300,           // 반응 후 RT 표시 시간 (ms)
+  TOO_FAST_MS: 1500,           // "너무 빠릅니다" 표시 시간 (ms)
+  FALSE_START_THRESHOLD: 100,  // 이보다 빠른 반응은 선반응으로 간주 (ms)
+  PHASE_INTRO_MIN_MS: 400,     // 페이즈 인트로 후 spacebar 무시 시간 (오타 방지)
+  PHASE_NAMES_KO: { color: '색깔', word: '글자', sound: '소리' },
+  PHASE_LABELS_EN: { color: 'COLOR PHASE', word: 'WORD PHASE', sound: 'SOUND PHASE' },
+  COLOR_NAMES_KO: { red: '빨강', blue: '파랑', green: '초록' },
+  PHASE_INTROS: {
+    color: '화면이 빨강, 파랑, 초록 중 하나의 색으로 바뀌면 즉시 스페이스를 누르세요.',
+    word: '검은색 글자로 색깔 이름이 나타나면 즉시 스페이스를 누르세요.',
+    sound: '음성으로 색깔 이름이 들리면 즉시 스페이스를 누르세요. 소리는 한 번만 재생됩니다.'
+  }
+};
+
+/* ═══════════════════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════════════════ */
+let state = 'welcome';
+let trials = [];
+let trialIndex = 0;
+let results = [];
+let stimulusStartTime = 0;
+let waitTimerId = null;
+let feedbackTimerId = null;
+let stimulusActive = false;
+let waitingForStimulus = false;
+let phaseIntroShownAt = 0;
+let koreanVoice = null;
+let startedAt = null;
+
+/* ═══════════════════════════════════════════════════════
+   ELEMENTS
+   ═══════════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const app = $('app');
+const statusbar = $('statusbar');
+const phaseLabel = $('phase-label');
+const trialCounter = $('trial-counter');
+const screens = {
+  welcome: $('screen-welcome'),
+  instructions: $('screen-instructions'),
+  phase: $('screen-phase'),
+  trial: $('screen-trial'),
+  results: $('screen-results')
+};
+const trialContent = $('trial-content');
+const averageDisplay = $('average-display');
+const avgEls = {
+  red:   $('avg-red'),
+  blue:  $('avg-blue'),
+  green: $('avg-green')
+};
+const inputId = $('input-id');
+const inputName = $('input-name');
+const btnStart = $('btn-start');
+
+/* ═══════════════════════════════════════════════════════
+   HELPERS
+   ═══════════════════════════════════════════════════════ */
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+  state = name;
+
+  if (name === 'welcome' || name === 'instructions' || name === 'results') {
+    statusbar.classList.add('invisible');
+  } else {
+    statusbar.classList.remove('invisible');
+  }
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function generateTrials() {
+  const colors = ['red', 'blue', 'green'];
+  const phases = ['color', 'word', 'sound'];
+  const all = [];
+  for (const phase of phases) {
+    // 각 색깔 3개씩 — balanced random
+    const phaseTrials = [];
+    for (const color of colors) {
+      for (let i = 0; i < 3; i++) phaseTrials.push({ phase, color });
+    }
+    shuffle(phaseTrials);
+    all.push(...phaseTrials);
+  }
+  return all;
+}
+
+/* ═══════════════════════════════════════════════════════
+   WELCOME / INPUT
+   ═══════════════════════════════════════════════════════ */
+function updateStartButton() {
+  btnStart.disabled = !(inputId.value.trim() && inputName.value.trim());
+}
+inputId.addEventListener('input', updateStartButton);
+inputName.addEventListener('input', updateStartButton);
+inputId.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); inputName.focus(); }
+});
+inputName.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !btnStart.disabled) { e.preventDefault(); beginExperiment(); }
+});
+btnStart.addEventListener('click', () => { if (!btnStart.disabled) beginExperiment(); });
+
+/* ═══════════════════════════════════════════════════════
+   EXPERIMENT FLOW
+   ═══════════════════════════════════════════════════════ */
+function beginExperiment() {
+  trials = generateTrials();
+  trialIndex = 0;
+  results = [];
+  startedAt = new Date().toISOString();
+  showScreen('instructions');
+}
+
+function showPhaseIntro(phase, phaseNum) {
+  $('phase-num').textContent = `PHASE ${phaseNum} / 3`;
+  $('phase-title').textContent = `${CONFIG.PHASE_NAMES_KO[phase]} 단계`;
+  $('phase-desc').textContent = CONFIG.PHASE_INTROS[phase];
+  phaseIntroShownAt = performance.now();
+  showScreen('phase');
+}
+
+function startTrial() {
+  showScreen('trial');
+  app.classList.remove('color-stimulus', 'stimulus-color-red', 'stimulus-color-blue', 'stimulus-color-green');
+
+  const trial = trials[trialIndex];
+
+  phaseLabel.textContent = CONFIG.PHASE_LABELS_EN[trial.phase];
+  trialCounter.textContent = `${String(trialIndex + 1).padStart(2, '0')} / 27`;
+
+  trialContent.className = 'trial-main waiting';
+  trialContent.textContent = '대기중';
+
+  // 색깔별 평균을 항상 표시 (데이터 없으면 — ms 로 보임)
+  updateAverageDisplay(trial.phase);
+  averageDisplay.classList.remove('hidden');
+
+  stimulusActive = false;
+  waitingForStimulus = true;
+
+  const waitTime = CONFIG.WAIT_MIN + Math.random() * (CONFIG.WAIT_MAX - CONFIG.WAIT_MIN);
+  waitTimerId = setTimeout(() => presentStimulus(trial), waitTime);
+}
+
+function presentStimulus(trial) {
+  waitingForStimulus = false;
+  stimulusActive = true;
+  averageDisplay.classList.add('hidden');
+
+  if (trial.phase === 'color') {
+    app.classList.add('color-stimulus', `stimulus-color-${trial.color}`);
+    trialContent.textContent = '';
+    trialContent.className = 'trial-main';
+    stimulusStartTime = performance.now();
+  } else if (trial.phase === 'word') {
+    trialContent.className = 'trial-main word';
+    trialContent.textContent = CONFIG.COLOR_NAMES_KO[trial.color];
+    stimulusStartTime = performance.now();
+  } else if (trial.phase === 'sound') {
+    trialContent.textContent = '';
+    trialContent.className = 'trial-main';
+    const word = CONFIG.COLOR_NAMES_KO[trial.color];
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'ko-KR';
+    if (koreanVoice) utterance.voice = koreanVoice;
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    let started = false;
+    utterance.onstart = () => {
+      started = true;
+      stimulusStartTime = performance.now();
+    };
+    // Fallback: 일부 브라우저에서 onstart가 늦거나 안 올 수 있음
+    setTimeout(() => {
+      if (!started && stimulusActive) {
+        stimulusStartTime = performance.now();
+      }
+    }, 80);
+    try { speechSynthesis.cancel(); } catch (_) {}
+    speechSynthesis.speak(utterance);
+  }
+}
+
+function handleSpacebarInTrial() {
+  // 자극 표시 전 (대기중) 에 누른 경우 — 선반응
+  if (waitingForStimulus) {
+    handleFalseStart();
+    return;
+  }
+  // 피드백 표시 중에는 무시
+  if (!stimulusActive) return;
+
+  const rt = performance.now() - stimulusStartTime;
+
+  // 너무 빠른 반응 — 선반응으로 간주
+  if (rt < CONFIG.FALSE_START_THRESHOLD) {
+    handleFalseStart();
+    return;
+  }
+
+  // 정상 반응
+  stimulusActive = false;
+  const trial = trials[trialIndex];
+  results.push({
+    trialNumber: trialIndex + 1,
+    phase: trial.phase,
+    color: trial.color,
+    rt: Math.round(rt)
+  });
+  showFeedback(Math.round(rt), trial.phase);
+}
+
+function handleFalseStart() {
+  // 진행 중인 모든 타이머/사운드 중지
+  clearTimeout(waitTimerId);
+  try { speechSynthesis.cancel(); } catch (_) {}
+
+  waitingForStimulus = false;
+  stimulusActive = false;
+
+  // 색 자극이 떠있었다면 제거
+  app.classList.remove('color-stimulus', 'stimulus-color-red', 'stimulus-color-blue', 'stimulus-color-green');
+
+  // 평균 영역은 그대로 보이게 두고 (현재 진행 상황 유지), 중앙에 경고 표시
+  trialContent.className = 'trial-main too-fast';
+  trialContent.textContent = '너무 빠릅니다';
+
+  // 동일 trial 재시도 (trialIndex 증가 X)
+  feedbackTimerId = setTimeout(() => {
+    startTrial();
+  }, CONFIG.TOO_FAST_MS);
+}
+
+function showFeedback(rt, phase) {
+  app.classList.remove('color-stimulus', 'stimulus-color-red', 'stimulus-color-blue', 'stimulus-color-green');
+
+  trialContent.className = 'trial-main';
+  trialContent.innerHTML = `
+    <div class="trial-feedback">
+      <div class="rt-number">${rt}</div>
+      <div class="rt-unit">milliseconds</div>
+    </div>
+  `;
+
+  updateAverageDisplay(phase);
+  averageDisplay.classList.remove('hidden');
+
+  feedbackTimerId = setTimeout(() => {
+    trialIndex++;
+    advanceFlow();
+  }, CONFIG.FEEDBACK_MS);
+}
+
+function updateAverageDisplay(phase) {
+  const phaseResults = results.filter(r => r.phase === phase);
+  const colors = ['red', 'blue', 'green'];
+  for (const color of colors) {
+    const el = avgEls[color];
+    const colorResults = phaseResults.filter(r => r.color === color);
+    if (colorResults.length === 0) {
+      el.textContent = '— ms';
+      el.classList.add('empty');
+    } else {
+      const avg = colorResults.reduce((s, r) => s + r.rt, 0) / colorResults.length;
+      el.textContent = `${Math.round(avg)} ms`;
+      el.classList.remove('empty');
+    }
+  }
+}
+
+function advanceFlow() {
+  if (trialIndex >= trials.length) {
+    showResults();
+    return;
+  }
+  const nextTrial = trials[trialIndex];
+  const phaseChanged = trialIndex === 0 || trials[trialIndex - 1].phase !== nextTrial.phase;
+
+  if (phaseChanged) {
+    const phaseNum = nextTrial.phase === 'color' ? 1 : nextTrial.phase === 'word' ? 2 : 3;
+    showPhaseIntro(nextTrial.phase, phaseNum);
+  } else {
+    startTrial();
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   KEY HANDLER
+   ═══════════════════════════════════════════════════════ */
+document.addEventListener('keydown', (e) => {
+  if (e.code !== 'Space') return;
+
+  // welcome 화면에서는 input 필드에 정상 입력되도록 통과
+  if (state === 'welcome') return;
+
+  e.preventDefault();
+
+  if (state === 'instructions') {
+    advanceFlow();
+    return;
+  }
+  if (state === 'phase') {
+    // 인트로 직후 너무 빠른 입력 방지 (실수로 두번 누를 때)
+    if (performance.now() - phaseIntroShownAt < CONFIG.PHASE_INTRO_MIN_MS) return;
+    startTrial();
+    return;
+  }
+  if (state === 'trial') {
+    handleSpacebarInTrial();
+    return;
+  }
+});
+
+/* ═══════════════════════════════════════════════════════
+   RESULTS
+   ═══════════════════════════════════════════════════════ */
+function showResults() {
+  showScreen('results');
+  $('results-meta').textContent = `${inputId.value.trim()} · ${inputName.value.trim()}`;
+
+  const container = $('results-content');
+  container.innerHTML = '';
+
+  const phases = ['color', 'word', 'sound'];
+  const colors = ['red', 'blue', 'green'];
+
+  for (const phase of phases) {
+    const phaseTrials = results.filter(r => r.phase === phase);
+    const phaseAvg = phaseTrials.length
+      ? Math.round(phaseTrials.reduce((s, r) => s + r.rt, 0) / phaseTrials.length)
+      : 0;
+
+    const section = document.createElement('div');
+    section.className = 'results-section';
+    let rowsHtml = '';
+    for (const color of colors) {
+      const trialsForColor = results.filter(r => r.phase === phase && r.color === color);
+      const avg = trialsForColor.length
+        ? Math.round(trialsForColor.reduce((s, r) => s + r.rt, 0) / trialsForColor.length)
+        : 0;
+      rowsHtml += `
+        <div class="data-row">
+          <div class="name">
+            <span class="swatch" style="background: var(--${color})"></span>
+            <span style="color: var(--${color}); font-weight: 600;">${CONFIG.COLOR_NAMES_KO[color]}</span>
+          </div>
+          <div class="num">${avg} ms</div>
+        </div>
+      `;
+    }
+    rowsHtml += `
+      <div class="data-row overall">
+        <div class="name"><span>단계 평균</span></div>
+        <div class="num">${phaseAvg} ms</div>
+      </div>
+    `;
+    section.innerHTML = `
+      <div class="header">
+        <div class="title">${CONFIG.PHASE_NAMES_KO[phase]} 단계</div>
+        <div class="tag">${CONFIG.PHASE_LABELS_EN[phase]}</div>
+      </div>
+      <div class="rows">${rowsHtml}</div>
+    `;
+    container.appendChild(section);
+  }
+
+  sendToSpreadsheet();
+}
+
+/* ═══════════════════════════════════════════════════════
+   GOOGLE SHEETS 전송
+   ═══════════════════════════════════════════════════════ */
+async function sendToSpreadsheet() {
+  const sendStatus = $('send-status');
+  const payload = {
+    studentId: inputId.value.trim(),
+    studentName: inputName.value.trim(),
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    trials: results
+  };
+
+  if (!CONFIG.GOOGLE_SCRIPT_URL || CONFIG.GOOGLE_SCRIPT_URL.includes('YOUR_GOOGLE')) {
+    sendStatus.textContent = '⚠ Apps Script URL이 아직 설정되지 않았습니다 — CSV 백업을 다운로드해주세요';
+    sendStatus.classList.add('error');
+    return;
+  }
+
+  try {
+    await fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    sendStatus.textContent = '✓ 데이터가 스프레드시트로 전송되었습니다';
+    sendStatus.classList.add('success');
+  } catch (e) {
+    console.error(e);
+    sendStatus.textContent = '✗ 전송 실패 — CSV 백업을 다운로드해주세요';
+    sendStatus.classList.add('error');
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   CSV 백업 다운로드
+   ═══════════════════════════════════════════════════════ */
+$('btn-download').addEventListener('click', () => {
+  const headers = ['StudentID', 'Name', 'TrialNumber', 'Phase', 'Color', 'RT_ms'];
+  const sid = inputId.value.trim();
+  const name = inputName.value.trim();
+  const rows = results.map(r => [sid, name, r.trialNumber, r.phase, r.color, r.rt]);
+  const csv = '\uFEFF' + [headers, ...rows]
+    .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `reaction_${sid}_${name}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+/* ═══════════════════════════════════════════════════════
+   TTS 초기화 및 브라우저 체크
+   ═══════════════════════════════════════════════════════ */
+function loadVoices() {
+  const voices = speechSynthesis.getVoices();
+  koreanVoice = voices.find(v => v.lang === 'ko-KR')
+             || voices.find(v => v.lang && v.lang.startsWith('ko'))
+             || null;
+}
+if ('speechSynthesis' in window) {
+  loadVoices();
+  speechSynthesis.onvoiceschanged = loadVoices;
+} else {
+  $('browser-warning').style.display = 'block';
+  $('browser-warning').innerHTML = '⚠ 이 브라우저는 음성합성을 지원하지 않습니다. <strong>Chrome 또는 Edge</strong>를 사용해주세요.';
+}
+
+// Chrome/Edge가 아니면 경고
+const ua = navigator.userAgent;
+const isChromeFamily = /Chrome|Edg/.test(ua) && !/Firefox/.test(ua);
+if (!isChromeFamily) {
+  $('browser-warning').style.display = 'block';
+}
+
+inputId.focus();
+</script>
+</body>
+</html>
