@@ -382,6 +382,13 @@ button.secondary:hover { background: #f5f5f5; border-color: var(--fg); }
 }
 
 /* ─── Results ─── */
+.screen#screen-results {
+  justify-content: flex-start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: 60px;
+  padding-bottom: 60px;
+}
 .results { max-width: 720px; width: 100%; }
 .results .eyebrow {
   font-family: 'JetBrains Mono', monospace;
@@ -624,7 +631,7 @@ button.secondary:hover { background: #f5f5f5; border-color: var(--fg); }
    CONFIG  ―  Google Apps Script URL을 아래에 붙여넣으세요
    ═══════════════════════════════════════════════════════ */
 const CONFIG = {
-  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyQ9CGuIp9Tw-ks2KjAh_70Ik0kpJPeQcFEaDSY3dfZIynDXUeDTIYkCM0TU-xhhuXM/exec',
+  GOOGLE_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycby6ZGkF0AEPHtHz3X51bVoSatVwxqqdtD5EcD7Ua7F2k8fFMGOT-k5T_A_8rYDHb_PT/exec',
   WAIT_MIN: 1200,              // 자극 전 최소 대기시간 (ms)
   WAIT_MAX: 2800,              // 자극 전 최대 대기시간 (ms)
   FEEDBACK_MS: 1300,           // 반응 후 RT 표시 시간 (ms)
@@ -767,7 +774,7 @@ function startTrial() {
   trialCounter.textContent = `${String(trialIndex + 1).padStart(2, '0')} / 27`;
 
   trialContent.className = 'trial-main waiting';
-  trialContent.textContent = '대기중';
+  trialContent.textContent = trial.phase === 'sound' ? '소리가 나오면 누르세요' : '대기중';
 
   // 색깔별 평균을 항상 표시 (데이터 없으면 — ms 로 보임)
   updateAverageDisplay(trial.phase);
@@ -783,20 +790,21 @@ function startTrial() {
 function presentStimulus(trial) {
   waitingForStimulus = false;
   stimulusActive = true;
-  averageDisplay.classList.add('hidden');
 
   if (trial.phase === 'color') {
+    averageDisplay.classList.add('hidden');
     app.classList.add('color-stimulus', `stimulus-color-${trial.color}`);
     trialContent.textContent = '';
     trialContent.className = 'trial-main';
     stimulusStartTime = performance.now();
   } else if (trial.phase === 'word') {
+    averageDisplay.classList.add('hidden');
     trialContent.className = 'trial-main word';
     trialContent.textContent = CONFIG.COLOR_NAMES_KO[trial.color];
     stimulusStartTime = performance.now();
   } else if (trial.phase === 'sound') {
-    trialContent.textContent = '';
-    trialContent.className = 'trial-main';
+    // ⚠️ 시각 단서 차단: 화면을 절대 바꾸지 않음.
+    //    "소리가 나오면 누르세요" 텍스트와 평균 표시 모두 그대로 유지.
     const word = CONFIG.COLOR_NAMES_KO[trial.color];
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = 'ko-KR';
